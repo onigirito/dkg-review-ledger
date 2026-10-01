@@ -1,0 +1,7 @@
+.git
+.runtime
+node_modules
+.env
+*.sqlite*
+coverage
+test-results

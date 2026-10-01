@@ -1,0 +1,66 @@
+name: Test and publish container
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.1'
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm audit --omit=dev
+      - name: Install the separate, unmodified DKG node
+        run: npm install --prefix "$RUNNER_TEMP/dkg-runtime" @origintrail-official/dkg@10.0.20 --omit=dev
+      - name: Test actual node HTTP API and Curator SHARE
+        run: node scripts/test-with-local-node.mjs "$RUNNER_TEMP/dkg-runtime/node_modules/@origintrail-official/dkg/dist/cli.js"
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Verify release identity
+        run: node -e 'const p=require("./package.json"); if(process.env.GITHUB_REF_NAME!=="v"+p.version) process.exit(1)'
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        id: image
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+      - name: Sign and publish source provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.image.outputs.digest }}
+          push-to-registry: true
+          create-storage-record: false
