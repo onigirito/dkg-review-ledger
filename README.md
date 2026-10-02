@@ -11,7 +11,11 @@ Requires Node.js 22.13+ and an independently running DKG v10.0.20+ node. Use a p
 ```sh
 export REPOSITORIES=owner/project
 export DKG_API_URL=http://localhost:9200
-export DKG_AUTH_TOKEN="$(dkg auth show)"
+# Initial registration uses the node-operator token file only for registration.
+export DKG_NODE_TOKEN_FILE=/private/dkg-node/auth.token
+node scripts/register-agent.mjs --output /private/review-ledger/agent.json
+unset DKG_NODE_TOKEN_FILE
+export DKG_AGENT_FILE=/private/review-ledger/agent.json
 # Optional: a read-only GitHub token increases the API rate limit.
 export GITHUB_TOKEN
 
@@ -20,6 +24,8 @@ node src/cli.mjs review-state --repo owner/project --pull 42
 node src/cli.mjs history --repo owner/project --pull 42
 node src/cli.mjs search --query "replay receipt"
 ```
+
+The saved credential must belong to a registered custodial agent. The node-operator token is used only for initial registration; it cannot identify the application agent or create its scoped project graph. Registration verifies the returned identity without printing credentials. Keep the file outside the checkout with mode `0600`. An existing credential file is verified and reused; an uncertain registration is reconciled before retrying.
 
 Review-state returns the captured head and base commits, source-reported review states, check conclusions, file count, missing source-provided patches, and `appliesToCapturedHead` for each review/check. A review on an older commit stays in the record and is identified as such. A successful check is GitHub-reported evidence, not an independent proof that the implementation is correct. Output retains canonical source links and a SHA-256 digest.
 
@@ -66,14 +72,16 @@ Published releases use the equivalent verifiable container registry at `ghcr.io/
 On Linux, with a local DKG node and credentials already set in your environment:
 
 ```sh
-docker run --rm --network host \
+docker run --rm --network container:dkg-case-node \
   -e BIND_HOST=127.0.0.1 -e PORT=8080 \
-  -e REPOSITORIES -e DKG_API_URL -e DKG_AUTH_TOKEN -e SERVICE_AUTH_TOKEN \
+  -e REPOSITORIES -e DKG_API_URL -e SERVICE_AUTH_TOKEN \
+  -e DKG_AGENT_FILE=/run/secrets/dkg-agent.json \
+  --mount type=bind,src="$DKG_AGENT_FILE",dst=/run/secrets/dkg-agent.json,readonly \
   --mount type=volume,src=review-ledger-data,dst=/data \
-  ghcr.io/onigirito/dkg-review-ledger:v0.1.0
+  ghcr.io/onigirito/dkg-review-ledger:v0.1.1
 ```
 
-Persist the journal volume across restarts. The CLI is also available in the image by selecting `node src/cli.mjs` as its command. See [verification](docs/VERIFICATION.md) for the tested node baseline and repeatable local-node test. Signed releases can be checked with `gh attestation verify oci://ghcr.io/onigirito/dkg-review-ledger@sha256:EXACT_RELEASE_DIGEST --repo onigirito/dkg-review-ledger`.
+`dkg-case-node` is a dedicated, operator-managed DKG container with its application port reachable by the reverse proxy. Set `PORT` to that port. The application shares only that case's network namespace and receives its own read-only agent credential file. Persist both the journal volume and the separate node's store across restarts. See [deployment](docs/DEPLOYMENT.md) for isolation and a verified cutover, and [verification](docs/VERIFICATION.md) for the tested node baseline. Signed releases can be checked with `gh attestation verify oci://ghcr.io/onigirito/dkg-review-ledger@sha256:EXACT_RELEASE_DIGEST --repo onigirito/dkg-review-ledger`.
 
 The [live read-only demo](https://shadowharness.com/demos/dkg-review-ledger/) queries captured public GitHub review records from a real DKG v10 node. Automated local-node tests use separate, labelled synthetic fixtures. Operators capture and SHARE through the authenticated agent API; the demo offers inspection of immutable snapshots and commit correspondence.
 

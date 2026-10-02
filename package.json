@@ -1,13 +1,13 @@
 {
   "name": "dkg-review-ledger",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Commit-aware pull-request review and CI evidence snapshots for DKG v10 agents",
   "type": "module",
   "license": "Apache-2.0",
   "repository": { "type": "git", "url": "https://github.com/onigirito/dkg-review-ledger.git" },
   "homepage": "https://github.com/onigirito/dkg-review-ledger",
   "bin": { "dkg-review-ledger": "src/cli.mjs" },
-  "files": ["src", "public", "docs", "README.md", "DESIGN.md", "SECURITY.md", "MAINTENANCE.md", "LICENSE"],
+  "files": ["src", "public", "docs", "scripts/register-agent.mjs", "README.md", "DESIGN.md", "SECURITY.md", "MAINTENANCE.md", "LICENSE"],
   "engines": { "node": ">=22.13.0" },
   "scripts": {
     "start": "node src/server.mjs",

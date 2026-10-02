@@ -12,7 +12,7 @@ const text = value => typeof value === 'string' ? value : '';
 const publicLink = (url, repository, fallback) => {
   try {
     const parsed = new URL(url);
-    if (parsed.origin === 'https://github.com' && parsed.pathname.startsWith('/' + repository + '/')) return parsed.href;
+    if (parsed.origin === 'https://github.com' && parsed.pathname.toLowerCase().startsWith('/' + repository.toLowerCase() + '/')) return parsed.href;
   } catch { /* use the canonical API resource */ }
   return fallback;
 };

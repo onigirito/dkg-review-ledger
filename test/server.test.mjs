@@ -13,6 +13,7 @@ test('public demo reads only allowlisted projects and refuses anonymous state ch
   const base = 'http://127.0.0.1:' + server.address().port;
   try {
     assert.equal((await fetch(base + '/api/projects')).status, 200);
+    assert.equal((await fetch(base + '/api/search?repository=ACME%2FDEMO')).status, 200);
     assert.equal((await fetch(base + '/api/search?repository=other/private')).status, 400);
     const post = headers => fetch(base + '/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: '{}' });
     assert.equal((await post({})).status, 401);
@@ -21,5 +22,18 @@ test('public demo reads only allowlisted projects and refuses anonymous state ch
     assert.match(page.headers.get('content-security-policy'), /script-src 'self'/);
     const app = await (await fetch(base + '/app.js')).text();
     assert.equal(app.includes('innerHTML'), false);
+  } finally { await new Promise(resolve => server.close(resolve)); journal.close(); }
+});
+
+test('readiness fails when the configured agent cannot authenticate with DKG', async () => {
+  const journal = new Journal(':memory:');
+  const server = createService({ repositories: ['acme/demo'], publicRead: true }, {
+    journal, dkg: { async projectGraph() { throw Object.assign(new Error('agent auth failed'), { status: 401 }); } },
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const response = await fetch('http://127.0.0.1:' + server.address().port + '/api/health');
+    assert.equal(response.status, 401);
+    assert.equal((await response.json()).error, 'INTEGRATION_REQUEST_FAILED');
   } finally { await new Promise(resolve => server.close(resolve)); journal.close(); }
 });

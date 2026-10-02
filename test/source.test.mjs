@@ -36,3 +36,13 @@ test('missing files cause refusal instead of a falsely complete evidence snapsho
   };
   await assert.rejects(new ReviewSource(github).capture('acme/demo', 1), /complete changed-file/);
 });
+
+test('GitHub canonical repository casing preserves public pull and review source links', async () => {
+  const github = {
+    async get() { return { body: { html_url: 'https://github.com/Acme/Demo/pull/1', head: { sha: HEAD_A }, base: { sha: BASE }, changed_files: 0, updated_at: 'same' } }; },
+    async *pages(path) { yield path.includes('/reviews?') ? [{ id: 2, html_url: 'https://github.com/Acme/Demo/pull/1#pullrequestreview-2', commit_id: HEAD_A }] : []; },
+  };
+  const captured = await new ReviewSource(github).capture('acme/demo', 1);
+  assert.equal(captured.url, 'https://github.com/Acme/Demo/pull/1');
+  assert.equal(captured.reviews[0].url, 'https://github.com/Acme/Demo/pull/1#pullrequestreview-2');
+});

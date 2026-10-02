@@ -120,7 +120,7 @@ export class DkgClient {
   }
   async listSnapshots(contextGraphId, { source, query = '', limit = 20, view = 'working-memory' } = {}) {
     if (!Number.isInteger(limit) || limit < 1 || limit > 100 || query.length > 200) throw new Error('Invalid bounded search.');
-    const filter = source ? `FILTER(STR(?source) = ${literal(source)})` : '';
+    const filter = source ? `FILTER(LCASE(STR(?source)) = LCASE(${literal(source)}))` : '';
     const sparql = `SELECT DISTINCT ?revision ?source ?title ?digest ?updated ?observed ?name ?head WHERE {
       ?revision <${NS.prov}wasDerivedFrom> ?source ; <${NS.gm}kind> "review-snapshot" ;
         <${NS.schema}headline> ?title ; <${NS.gm}contentDigest> ?digest ; <${NS.schema}dateModified> ?updated ;

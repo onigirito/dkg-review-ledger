@@ -22,6 +22,7 @@ test('actual DKG v10 HTTP API: lossless WM, replay, changed-head history, Curato
     assert.notEqual(first.assets[0].name, changed.assets[0].name);
     const history = await dkg.listSnapshots(graph);
     assert.equal(history.length, 2);
+    assert.equal((await dkg.listSnapshots(graph, { source: 'https://github.com/ACME/DEMO/pull/1' })).length, 2);
     const read = await dkg.loadSnapshot(graph, changed.assets[0].name);
     assert.equal(assessSnapshot(read.snapshot).reviews[0].appliesToCapturedHead, false);
     assert.equal(assessSnapshot(read.snapshot).checks[0].appliesToCapturedHead, true);

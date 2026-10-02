@@ -50,15 +50,20 @@ export function createService(config, { dkg, journal, source } = {}) {
         response.writeHead(200, { 'Content-Type': 'text/css; charset=utf-8' });
         return response.end(await readFile(new URL('../public/style.css', import.meta.url)));
       }
-      if (request.method === 'GET' && url.pathname === '/api/health') return json(response, 200, { status: 'running', version: '0.1.0', integration: 'dkg-review-ledger' });
+      if (request.method === 'GET' && url.pathname === '/api/health') {
+        await dkg.projectGraph(config.repositories[0]);
+        return json(response, 200, { status: 'ready', version: '0.1.1', integration: 'dkg-review-ledger', dkg: 'authenticated-agent' });
+      }
       const token = (request.headers.authorization || '').replace(/^Bearer /, '');
       const authorized = config.serviceToken && equalToken(token, config.serviceToken);
       const publicGet = config.publicRead && request.method === 'GET';
       if (!authorized && !publicGet) return json(response, 401, { error: 'AUTH_REQUIRED' });
       if (request.method === 'GET' && url.pathname === '/api/projects') return json(response, 200, { repositories: config.repositories, writeEnabled: Boolean(authorized) });
       const input = request.method === 'GET' ? Object.fromEntries(url.searchParams) : await body(request);
-      const repository = input.repository || config.repositories[0];
-      if (!config.repositories.includes(repository)) return json(response, 400, { error: 'REPOSITORY_NOT_CONFIGURED' });
+      const requestedRepository = input.repository || config.repositories[0];
+      const repository = typeof requestedRepository === 'string'
+        ? config.repositories.find(item => item.toLowerCase() === requestedRepository.toLowerCase()) : undefined;
+      if (!repository) return json(response, 400, { error: 'REPOSITORY_NOT_CONFIGURED' });
       const pull = input.pull === undefined ? undefined : Number(input.pull);
       if (pull !== undefined && (!Number.isSafeInteger(pull) || pull < 1)) return json(response, 400, { error: 'INVALID_PULL' });
       const graph = await dkg.projectGraph(repository);
@@ -71,7 +76,7 @@ export function createService(config, { dkg, journal, source } = {}) {
         if (url.pathname !== '/api/review-state') return json(response, 200, { repository, memoryLayer: view, snapshots: rows });
         if (!rows.length && !input.name) return json(response, 404, { error: 'NO_CAPTURED_SNAPSHOT' });
         const captured = await dkg.loadSnapshot(graph, input.name || rows[0].name, view);
-        if (captured.snapshot.repository !== repository || Number(captured.snapshot.id) !== pull) return json(response, 400, { error: 'SNAPSHOT_SCOPE_MISMATCH' });
+        if (captured.snapshot.repository.toLowerCase() !== repository.toLowerCase() || Number(captured.snapshot.id) !== pull) return json(response, 400, { error: 'SNAPSHOT_SCOPE_MISMATCH' });
         return json(response, 200, { name: captured.name, digest: captured.digest, observedAt: captured.observedAt,
           memoryLayer: view, evidence: assessSnapshot(captured.snapshot) });
       }

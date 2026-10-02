@@ -15,8 +15,9 @@ export async function run(argv = process.argv.slice(2), env = process.env) {
     view: { type: 'string', default: 'working-memory' },
   } });
   const config = configuration(env);
-  const repository = values.repo || config.repositories[0];
-  if (!config.repositories.includes(repository)) throw new Error('Repository is outside REPOSITORIES.');
+  const requestedRepository = values.repo || config.repositories[0];
+  const repository = config.repositories.find(item => item.toLowerCase() === requestedRepository.toLowerCase());
+  if (!repository) throw new Error('Repository is outside REPOSITORIES.');
   const pull = values.pull === undefined ? undefined : Number(values.pull);
   if (pull !== undefined && (!Number.isSafeInteger(pull) || pull < 1)) throw new Error('Invalid pull-request number.');
   const journal = new Journal(config.file);

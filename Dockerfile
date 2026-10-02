@@ -9,8 +9,9 @@ COPY --chown=node:node package.json README.md DESIGN.md SECURITY.md MAINTENANCE.
 COPY --chown=node:node src ./src
 COPY --chown=node:node public ./public
 COPY --chown=node:node docs ./docs
+COPY --chown=node:node scripts/register-agent.mjs ./scripts/register-agent.mjs
 USER node
 EXPOSE 8080
 VOLUME ["/data"]
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD node -e "fetch('http://localhost:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD node -e "fetch('http://127.0.0.1:'+process.env.PORT+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "src/server.mjs"]
