@@ -13,6 +13,7 @@ export async function run(argv = process.argv.slice(2), env = process.env) {
     repo: { type: 'string' }, pull: { type: 'string' }, query: { type: 'string', default: '' },
     name: { type: 'string' }, limit: { type: 'string', default: '20' },
     view: { type: 'string', default: 'working-memory' },
+    'shared-owner': { type: 'string' },
   } });
   const config = configuration(env);
   const requestedRepository = values.repo || config.repositories[0];
@@ -20,10 +21,14 @@ export async function run(argv = process.argv.slice(2), env = process.env) {
   if (!repository) throw new Error('Repository is outside REPOSITORIES.');
   const pull = values.pull === undefined ? undefined : Number(values.pull);
   if (pull !== undefined && (!Number.isSafeInteger(pull) || pull < 1)) throw new Error('Invalid pull-request number.');
+  if (values['shared-owner'] !== undefined && (!['search', 'history', 'review-state'].includes(command) || values.view !== 'shared-working-memory')) {
+    throw new Error('--shared-owner is available only for Shared Memory search, history and review-state reads.');
+  }
   const journal = new Journal(config.file);
   const dkg = new DkgClient({ url: config.dkgUrl, token: config.dkgToken });
   try {
-    const graph = await dkg.projectGraph(repository);
+    const graph = values['shared-owner'] !== undefined
+      ? await dkg.sharedProjectGraph(repository, values['shared-owner']) : await dkg.projectGraph(repository);
     if (command === 'sync') return await syncReviews({ repository, pull, graph, journal, dkg,
       source: new ReviewSource(new GitHubClient({ token: config.githubToken, journal })) });
     if (command === 'search' || command === 'history' || command === 'review-state') {

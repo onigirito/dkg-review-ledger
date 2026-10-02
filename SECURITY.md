@@ -4,6 +4,7 @@
 
 - GitHub REST requests go to `api.github.com`. A GitHub token is optional and should be limited to reading the configured public repositories. The integration never writes to GitHub.
 - DKG requests go only to the operator-configured `DKG_API_URL` origin. The default is the local node. Remote nodes must use HTTPS; credential-bearing URLs, query parameters in the base URL and redirects are refused.
+- The CLI's `--shared-owner` selects a repository-specific Shared Memory project by its writer's DKG agent address. The reader keeps its own scoped credential and the node decides access. This read selector cannot change sync/SHARE destinations or select another agent's Working Memory.
 - `DKG_AUTH_TOKEN`, optional `GITHUB_TOKEN` and `SERVICE_AUTH_TOKEN` come from the environment. No token is written into the journal, returned to the browser or included in public receipts. Each credential is used only for its own service.
 - The service accepts only the bounded `REPOSITORIES` allowlist and refuses repositories that GitHub marks private. It does not fetch links embedded in a review, patch, comment or check output.
 

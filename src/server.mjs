@@ -9,6 +9,7 @@ import { Journal } from './journal.mjs';
 import { ReviewSource, assessSnapshot } from './reviews.mjs';
 import { syncReviews } from './sync.mjs';
 
+const version = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')).version;
 const equalToken = (left, right) => timingSafeEqual(createHash('sha256').update(left).digest(), createHash('sha256').update(right).digest());
 const json = (response, status, value) => {
   response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store',
@@ -52,7 +53,7 @@ export function createService(config, { dkg, journal, source } = {}) {
       }
       if (request.method === 'GET' && url.pathname === '/api/health') {
         await dkg.projectGraph(config.repositories[0]);
-        return json(response, 200, { status: 'ready', version: '0.1.1', integration: 'dkg-review-ledger', dkg: 'authenticated-agent' });
+        return json(response, 200, { status: 'ready', version, integration: 'dkg-review-ledger', dkg: 'authenticated-agent' });
       }
       const token = (request.headers.authorization || '').replace(/^Bearer /, '');
       const authorized = config.serviceToken && equalToken(token, config.serviceToken);

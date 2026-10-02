@@ -1,6 +1,6 @@
 {
   "name": "dkg-review-ledger",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Commit-aware pull-request review and CI evidence snapshots for DKG v10 agents",
   "type": "module",
   "license": "Apache-2.0",

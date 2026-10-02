@@ -31,6 +31,8 @@ The journal contains capture outcomes, a repository lease and confirmed identiti
 
 The entry point is an agent: `sync`, `review-state`, `history` and `search` commands, or the authenticated HTTP equivalents. Sensible defaults capture into WM and query WM. A read-only live endpoint lets reviewers inspect source identities and commit correspondence. It offers no consensus, voting or endorsement buttons. Agent-mediated selection of a snapshot calls the explicit SHARE API with the exact digest.
 
+A second agent uses its own scoped node credential and the CLI's `--shared-owner` with the writer's address to select that repository's Shared Memory project. This selection is explicit because each agent's default project belongs to its own identity. It applies only to Shared Memory reads; the writer retains its existing sync and Curator SHARE path.
+
 An agent comparing a new implementation with an earlier review can retrieve two snapshots, identify which review commits still correspond to the captured head, and carry the exact source packet into a team Context Graph. This supports the LLM-Wiki/autoresearch direction by making engineering evidence reusable and traceable across long-running agent work. It does not infer consensus, code correctness or client acceptance from a CI result.
 
 ## Promotion path and context-oracle readiness

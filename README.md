@@ -63,6 +63,18 @@ node src/cli.mjs history --repo owner/project --pull 42 --view shared-working-me
 
 SHARE calls `POST /api/knowledge-assets/{name}/swm/share` with `awaitCuratorAck:true`. The node seals the complete Knowledge Asset and applies Curator authority. The client requires a sealed share response, checks the lifecycle descriptor and reads the snapshot back through Shared Memory before reporting success. A timed-out response is reconciled against the same identity; a refused or unconfirmed share stays incomplete. No PUBLISH, gas funding, staking, endorsement or voting operation is implemented.
 
+Another agent can read the writer's shared project using its own scoped credential. The writer supplies its agent address with the shared project metadata:
+
+```sh
+# DKG_AGENT_FILE belongs to the reader; WRITER_AGENT_ADDRESS identifies the shared project.
+node src/cli.mjs history --repo owner/project --pull 42 \
+  --view shared-working-memory --shared-owner "$WRITER_AGENT_ADDRESS"
+node src/cli.mjs review-state --repo owner/project --pull 42 \
+  --view shared-working-memory --shared-owner "$WRITER_AGENT_ADDRESS"
+```
+
+`--shared-owner` selects the writer's repository-specific project for Shared Memory search, history and review-state. The reader remains authenticated under its own identity, and the node controls access. Sync and SHARE always use the writer's own project and credential. The option cannot select another agent's Working Memory or redirect writes.
+
 See [DESIGN.md](DESIGN.md) for the Verifiable Memory and context-oracle promotion path, [SECURITY.md](SECURITY.md) for authority and egress, and [MAINTENANCE.md](MAINTENANCE.md) for support.
 
 ## Container and live demo
@@ -78,7 +90,7 @@ docker run --rm --network container:dkg-case-node \
   -e DKG_AGENT_FILE=/run/secrets/dkg-agent.json \
   --mount type=bind,src="$DKG_AGENT_FILE",dst=/run/secrets/dkg-agent.json,readonly \
   --mount type=volume,src=review-ledger-data,dst=/data \
-  ghcr.io/onigirito/dkg-review-ledger:v0.1.1
+  ghcr.io/onigirito/dkg-review-ledger:v0.1.2
 ```
 
 `dkg-case-node` is a dedicated, operator-managed DKG container with its application port reachable by the reverse proxy. Set `PORT` to that port. The application shares only that case's network namespace and receives its own read-only agent credential file. Persist both the journal volume and the separate node's store across restarts. See [deployment](docs/DEPLOYMENT.md) for isolation and a verified cutover, and [verification](docs/VERIFICATION.md) for the tested node baseline. Signed releases can be checked with `gh attestation verify oci://ghcr.io/onigirito/dkg-review-ledger@sha256:EXACT_RELEASE_DIGEST --repo onigirito/dkg-review-ledger`.

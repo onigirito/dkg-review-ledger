@@ -33,6 +33,12 @@ export class DkgClient {
     if (!/^0x[a-fA-F0-9]{40}$/.test(identity.agentAddress || '')) throw new Error('A DKG agent-scoped token with a custodial owner identity is required for project creation and SHARE.');
     return identity.agentAddress.toLowerCase() + '/review-ledger-' + hash(repository.toLowerCase()).slice(0, 24);
   }
+  async sharedProjectGraph(repository, owner) {
+    if (!/^0x[a-fA-F0-9]{40}$/.test(owner || '')) throw new Error('A shared-project owner must be a DKG agent address.');
+    // Authenticate the reader under its own scoped identity. The node retains read authority.
+    await this.projectGraph(repository);
+    return owner.toLowerCase() + '/review-ledger-' + hash(repository.toLowerCase()).slice(0, 24);
+  }
   async read(asset) {
     const prefix = '/api/knowledge-assets/' + encodeURIComponent(asset.name);
     const query = '?contextGraphId=' + encodeURIComponent(asset.contextGraphId);
